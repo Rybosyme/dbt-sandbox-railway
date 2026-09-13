@@ -8,6 +8,7 @@ import { railwayRequest } from "../railway/client.js";
 import {
   serviceCreateMutation,
   serviceDeleteMutation,
+  serviceInstanceDeployMutation,
 } from "../railway/mutations.js";
 import { HttpError } from "../utils/errors.js";
 
@@ -15,6 +16,10 @@ type ServiceCreateResponse = {
   serviceCreate: {
     id: string;
   };
+};
+
+type ServiceInstanceDeployResponse = {
+  serviceInstanceDeployV2: string;
 };
 
 type ServiceDeleteResponse = {
@@ -74,6 +79,23 @@ export const createSession = async ({ name }: CreateSessionInput) => {
 
   if (!data.serviceCreate?.id) {
     throw new HttpError(502, "Railway API error: missing service id");
+  }
+
+  // serviceCreate does not always start a deployment (e.g. when authenticated
+  // with a project token), so trigger one explicitly. Roll back on failure.
+  try {
+    await railwayRequest<ServiceInstanceDeployResponse>(
+      serviceInstanceDeployMutation,
+      {
+        serviceId: data.serviceCreate.id,
+        environmentId: config.railwayEnvironmentId,
+      },
+    );
+  } catch (error) {
+    await railwayRequest<ServiceDeleteResponse>(serviceDeleteMutation, {
+      id: data.serviceCreate.id,
+    }).catch(() => undefined);
+    throw error;
   }
 
   const id = randomUUID();

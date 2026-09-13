@@ -11,3 +11,9 @@ export const serviceDeleteMutation = `
     serviceDelete(id: $id)
   }
 `;
+
+export const serviceInstanceDeployMutation = `
+  mutation serviceInstanceDeploy($serviceId: String!, $environmentId: String!) {
+    serviceInstanceDeployV2(serviceId: $serviceId, environmentId: $environmentId)
+  }
+`;

@@ -5,7 +5,8 @@ import { sessions } from "../db/schema.js";
 import { resolveSandboxHealthUrl } from "../utils/sandboxTarget.js";
 
 const HEALTH_TIMEOUT_MS = 3000;
-const STARTUP_TIMEOUT_MS = 90_000;
+// Image pull + boot can take a few minutes on a cold node.
+const STARTUP_TIMEOUT_MS = 10 * 60_000;
 const HEALTH_CHECK_STATUSES = ["starting", "active"] as const;
 
 const checkSandboxHealth = async (healthUrl: string) => {
