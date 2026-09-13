@@ -1,84 +1,60 @@
-# Background Agent on Railway
+# dbt sandbox on Railway
 
-This is the companion repo for ["I Built a Remote Coding Agent Platform on Railway (OpenCode, Claude Code, Codex)
-"](https://youtu.be/A-beOnncri8) (a video I created in partnership with [Railway](https://railway.com?referralCode=P06La2&utm_medium=social&utm_source=youtube&utm_campaign=sid)).
+A web-based, disposable dbt workspace. Click "new session" in the dashboard and Railway spins up a
+container with **code-server** (VS Code in the browser), **OpenCode**, **Claude Code**, **Codex**,
+**dbt-core + dbt-postgres**, and **psql**, all pre-wired to a Postgres database through a restricted
+role. Delete the session and the container is gone.
 
-[![](./readme-assets/thumbnail.png)](https://youtu.be/A-beOnncri8)
+Forked from [sidpalas/background-agent-railway](https://github.com/sidpalas/background-agent-railway)
+(companion repo to [this video](https://youtu.be/A-beOnncri8)).
 
-It is a full-stack demo that provisions AI agents into sandbox sessions running on Railway. (inspired by [Ramp's internal agent "Inspect"](https://builders.ramp.com/post/why-we-built-our-background-agent))
+## How it fits together
 
-## Deployment Template!
+| Piece | What it is |
+|---|---|
+| `packages/api` | Express control plane. Creates/deletes sandbox services through the Railway API, stores sessions in its own Postgres, and reverse-proxies the browser into the sandbox over Railway's private network. |
+| `packages/web` | React dashboard: log in with the admin password, create sessions, open them. |
+| `packages/sandbox` | The sandbox image (`ghcr.io/rybosyme/dbt-sandbox`). Built by `.github/workflows/sandbox-image.yml` on every push that touches `packages/sandbox/`. |
+| `dbt/` | Starter dbt project. Cloned into every sandbox; `DBT_PROJECT_DIR` points at it. `models/sources.yml` lists the source tables. |
+| `AGENTS.md` / `CLAUDE.md` | Instructions the coding agents read inside the sandbox. |
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/background-agent?referralCode=P06La2&utm_medium=social&utm_source=youtube&utm_campaign=sid)
+### Variables the API needs
 
-## Video Progression:
+Everything the upstream template needs, plus:
 
-1. Run opencode locally
-2. Run opencode inside a container
-3. Deploy to Railway
-4. Add code-server to container image
-5. Use the Railway API to deploy
-6. Create a custom API for the control plane
-7. Add a frontend (+ add proxy) 
-8. Install other coding agents
-9. Configure GitHub access and pre-clone the repo
+| Variable | Purpose |
+|---|---|
+| `RAILWAY_PROJECT_TOKEN` **or** `RAILWAY_API_TOKEN` | Token used to create/delete sandbox services. A project token (Project settings → Tokens) is scoped to this project only. |
+| `SANDBOX_VAR_<NAME>` | Injected into every sandbox as `<NAME>`. Used for `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, `PGSSLMODE`, `ANTHROPIC_API_KEY`. |
+| `SANDBOX_REPO_URL` | Repo cloned into the sandbox (public repos need no token). |
 
-## Development Notes
+Each session also receives `DBT_SCHEMA=dbt_<session-name>` so concurrent sandboxes build into
+separate schemas.
 
-### Project structure
+### Database access
 
-- `packages/api`: Express + TypeScript API, Railway integration, session management, and proxying.
-- `packages/web`: React + Vite frontend.
-- `packages/sandbox`: Sandbox container image used by session environments.
-- `docker-compose.yml`: Local API + Postgres + sandbox containers for development.
+The sandboxes connect as a dedicated Postgres role that can `SELECT` from the source schemas and
+create/write only its own `dbt_*` schemas. Nothing in a sandbox can modify source tables.
 
-### Prerequisites
-
-- [Mise](https://mise.jdx.dev/)
-- Docker + Docker Compose
-
-### Local development
-
-1. Start local infra:
-
-   ```bash
-   docker compose up -d
-   ```
-
-2. Configure API environment variables:
-
-   ```bash
-   cp packages/api/.env.example packages/api/.env
-   ```
-
-3. Install dependencies:
-
-   ```bash
-   pnpm install --dir packages/api
-   pnpm install --dir packages/web
-   ```
-
-4. Run API and web app in separate terminals:
-
-   ```bash
-   pnpm --dir packages/api dev
-   pnpm --dir packages/web dev
-   ```
-
-The API runs on `http://localhost:3000` and the web app runs on `http://localhost:5173`.
-
-### Useful API commands
+## Deploying changes
 
 ```bash
-pnpm --dir packages/api db:generate
-pnpm --dir packages/api db:migrate
-pnpm --dir packages/api build
-pnpm --dir packages/api start
+railway up --service api     # from the repo root; uses packages/api/Dockerfile
+railway up --service web     # root directory is /packages/web
+git push                     # rebuilds the sandbox image if packages/sandbox changed
 ```
 
-### Useful web commands
+The API runs `pnpm db:migrate` as a pre-deploy step.
+
+## Local development
+
+See the upstream README section below; unchanged except that `packages/api/.env.example` now lists
+the extra variables.
 
 ```bash
-pnpm --dir packages/web build
-pnpm --dir packages/web preview
+docker compose up -d
+cp packages/api/.env.example packages/api/.env
+pnpm install --dir packages/api && pnpm install --dir packages/web
+pnpm --dir packages/api dev
+pnpm --dir packages/web dev
 ```
