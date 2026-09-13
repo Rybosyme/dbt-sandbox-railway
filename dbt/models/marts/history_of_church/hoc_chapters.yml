@@ -1,0 +1,26 @@
+version: 2
+
+models:
+  - name: hoc_chapters
+    description: One row per chapter of the History of the Church, with its text and date range.
+    columns:
+      - name: chapter_id
+        data_tests:
+          - unique
+          - not_null
+      - name: chapter_label
+        description: The heading as printed, e.g. "CHAPTER XIII." or "Chapter XIII--2.".
+      - name: printed_chapter_number
+        description: The Roman numeral in the heading as an integer. Can differ from chapter_seq where the source has typos.
+        data_tests:
+          - not_null
+      - name: chapter_title
+        data_tests:
+          - not_null
+      - name: first_entry_date
+        description: Earliest resolved journal entry date in the chapter.
+      - name: last_entry_date
+      - name: word_count
+        description: Words in text paragraphs, excluding sidenotes and footnotes.
+      - name: chapter_text
+        description: Text paragraphs joined with blank lines, excluding sidenotes and footnotes.

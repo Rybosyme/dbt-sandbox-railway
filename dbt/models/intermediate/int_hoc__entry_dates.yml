@@ -1,0 +1,29 @@
+version: 2
+
+models:
+  - name: int_hoc__entry_dates
+    description: >
+      One row per History of the Church journal entry with its resolved calendar date. Missing
+      months and years are filled in from the previous entry, preferring the weekday the date
+      line names; before a volume's first resolvable entry, the latest full date written in the
+      text is used instead.
+    columns:
+      - name: paragraph_id
+        data_tests:
+          - unique
+          - not_null
+      - name: entry_date_text
+        description: The date line as printed, e.g. "Monday and Tuesday, 16 and 17".
+      - name: entry_date
+        description: The resolved date; the first of the month when date_precision is month.
+      - name: date_precision
+        description: day, or month for date lines with no day ("January, 1835").
+      - name: resolution
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [explicit, inferred_year, inferred_month_and_year, unresolved]
+      - name: weekday_matches
+        description: Whether entry_date falls on the weekday the date line names, when it names one.
+      - name: context_date
+        description: The date the missing parts were filled in from.

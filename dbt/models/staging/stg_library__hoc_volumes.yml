@@ -1,0 +1,19 @@
+version: 2
+
+models:
+  - name: stg_library__hoc_volumes
+    description: >
+      One row per volume of the History of the Church of Jesus Christ of Latter-day Saints
+      (Project Gutenberg edition) whose text is loaded in library.work_chunk, with the full
+      volume text reassembled from its chunks. Volume 3 is catalogued but has no text yet.
+    columns:
+      - name: work_id
+        data_tests:
+          - unique
+          - not_null
+      - name: volume_number
+        data_tests:
+          - unique
+          - not_null
+      - name: full_text
+        description: Every chunk body joined in order with a blank line.
