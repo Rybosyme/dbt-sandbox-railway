@@ -1,0 +1,17 @@
+# dbt profile for the sandbox. Every value comes from environment variables
+# that the control-plane API injects into the sandbox service at creation time.
+# The same PG* variables also make `psql` work with no arguments.
+sandbox:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('PGHOST') }}"
+      port: "{{ env_var('PGPORT', '5432') | as_number }}"
+      user: "{{ env_var('PGUSER') }}"
+      password: "{{ env_var('PGPASSWORD') }}"
+      dbname: "{{ env_var('PGDATABASE') }}"
+      schema: "{{ env_var('DBT_SCHEMA', 'dbt_sandbox') }}"
+      sslmode: "{{ env_var('PGSSLMODE', 'require') }}"
+      threads: 4
+      connect_timeout: 15

@@ -14,7 +14,9 @@ export const railwayRequest = async <T>(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${config.railwayApiToken}`,
+      ...(config.railwayProjectToken
+        ? { "Project-Access-Token": config.railwayProjectToken }
+        : { Authorization: `Bearer ${config.railwayApiToken}` }),
     },
     body: JSON.stringify({ query, variables }),
   });

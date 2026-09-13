@@ -22,11 +22,32 @@ const parseSandboxLocalMap = (value?: string) => {
   }, {});
 };
 
+const SANDBOX_VAR_PREFIX = "SANDBOX_VAR_";
+
+// Any API env var named SANDBOX_VAR_<NAME> is injected into every sandbox as <NAME>.
+const parseSandboxVars = () =>
+  Object.entries(process.env).reduce<Record<string, string>>((acc, [key, value]) => {
+    if (key.startsWith(SANDBOX_VAR_PREFIX) && value) {
+      acc[key.slice(SANDBOX_VAR_PREFIX.length)] = value;
+    }
+    return acc;
+  }, {});
+
+const railwayProjectToken = process.env.RAILWAY_PROJECT_TOKEN;
+const railwayApiToken = process.env.RAILWAY_API_TOKEN;
+
+if (!railwayProjectToken && !railwayApiToken) {
+  throw new Error(
+    "Missing required environment variable: RAILWAY_PROJECT_TOKEN or RAILWAY_API_TOKEN",
+  );
+}
+
 export const config = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   port: Number(process.env.PORT ?? 3000),
   databaseUrl: requiredEnv("DATABASE_URL"),
-  railwayApiToken: requiredEnv("RAILWAY_API_TOKEN"),
+  railwayApiToken,
+  railwayProjectToken,
   railwayProjectId: requiredEnv("RAILWAY_PROJECT_ID"),
   railwayEnvironmentId: requiredEnv("RAILWAY_ENVIRONMENT_ID"),
   railwayServiceImage: requiredEnv("RAILWAY_SERVICE_IMAGE"),
@@ -43,6 +64,7 @@ export const config = {
   sandboxLocalBaseUrl: process.env.SANDBOX_LOCAL_BASE_URL,
   sandboxLocalMap: parseSandboxLocalMap(process.env.SANDBOX_LOCAL_MAP),
   sandboxRepoUrl: process.env.SANDBOX_REPO_URL,
+  sandboxVars: parseSandboxVars(),
   githubPersonalAccessToken: process.env.GH_TOKEN,
   localMode:
     process.env.LOCAL_MODE === "true" ||

@@ -27,13 +27,22 @@ export type CreateSessionInput = {
 
 const generateSessionName = () => `sandbox-${Date.now()}`;
 
+// Each session gets its own dbt target schema so concurrent sandboxes never collide.
+const schemaForSession = (sessionName: string) => {
+  const slug = sessionName.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  return `dbt_${slug}`.slice(0, 63);
+};
+
 export const createSession = async ({ name }: CreateSessionInput) => {
   if (config.localMode) {
     throw new HttpError(403, "Session creation disabled in local mode");
   }
 
   const resolvedName = name?.trim() ? name.trim() : generateSessionName();
-  const sandboxVariables: Record<string, string> = {};
+  const sandboxVariables: Record<string, string> = {
+    ...config.sandboxVars,
+    DBT_SCHEMA: schemaForSession(resolvedName),
+  };
 
   if (config.sandboxRepoUrl) {
     sandboxVariables.SANDBOX_REPO_URL = config.sandboxRepoUrl;
