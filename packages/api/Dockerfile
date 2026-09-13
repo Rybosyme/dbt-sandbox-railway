@@ -11,6 +11,7 @@ COPY packages/api/drizzle.config.ts ./drizzle.config.ts
 RUN pnpm install
 
 COPY packages/api/src ./src
+COPY packages/api/drizzle ./drizzle
 
 RUN pnpm build
 
