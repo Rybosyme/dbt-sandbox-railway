@@ -10,6 +10,13 @@ export const railwayRequest = async <T>(
   query: string,
   variables: Record<string, unknown>,
 ): Promise<T> => {
+  if (!config.railwayProjectToken && !config.railwayApiToken) {
+    throw new HttpError(
+      503,
+      "Railway token not configured: set RAILWAY_PROJECT_TOKEN (or RAILWAY_API_TOKEN) on the api service",
+    );
+  }
+
   const response = await fetch(config.railwayGraphqlUrl, {
     method: "POST",
     headers: {

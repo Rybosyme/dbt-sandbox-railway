@@ -37,8 +37,8 @@ const railwayProjectToken = process.env.RAILWAY_PROJECT_TOKEN;
 const railwayApiToken = process.env.RAILWAY_API_TOKEN;
 
 if (!railwayProjectToken && !railwayApiToken) {
-  throw new Error(
-    "Missing required environment variable: RAILWAY_PROJECT_TOKEN or RAILWAY_API_TOKEN",
+  console.warn(
+    "RAILWAY_PROJECT_TOKEN / RAILWAY_API_TOKEN not set: sessions cannot be created until one is configured",
   );
 }
 
