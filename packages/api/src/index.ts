@@ -16,6 +16,12 @@ import {
 const server = createServer((req, res) => {
   const host = req.headers.host;
 
+  // Platform health checks arrive with an arbitrary Host header.
+  if (req.url === "/health") {
+    app(req, res);
+    return;
+  }
+
   if (isProxyHost(host)) {
     handleProxyRequest(req, res);
     return;
