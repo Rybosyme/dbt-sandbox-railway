@@ -6,9 +6,10 @@ export const serviceCreateMutation = `
   }
 `;
 
+// environmentId is required for project-token auth to be authorized.
 export const serviceDeleteMutation = `
-  mutation serviceDelete($id: String!) {
-    serviceDelete(id: $id)
+  mutation serviceDelete($id: String!, $environmentId: String!) {
+    serviceDelete(id: $id, environmentId: $environmentId)
   }
 `;
 

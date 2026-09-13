@@ -94,6 +94,7 @@ export const createSession = async ({ name }: CreateSessionInput) => {
   } catch (error) {
     await railwayRequest<ServiceDeleteResponse>(serviceDeleteMutation, {
       id: data.serviceCreate.id,
+      environmentId: config.railwayEnvironmentId,
     }).catch(() => undefined);
     throw error;
   }
@@ -148,13 +149,18 @@ export const deleteSession = async (id: string) => {
   try {
     await railwayRequest<ServiceDeleteResponse>(serviceDeleteMutation, {
       id: session.railwayServiceId,
+      environmentId: config.railwayEnvironmentId,
     });
   } catch (error) {
-    await db
-      .update(sessions)
-      .set({ status: session.status, updatedAt: new Date() })
-      .where(eq(sessions.id, id));
-    throw error;
+    const alreadyGone =
+      error instanceof HttpError && /not found/i.test(error.message);
+    if (!alreadyGone) {
+      await db
+        .update(sessions)
+        .set({ status: session.status, updatedAt: new Date() })
+        .where(eq(sessions.id, id));
+      throw error;
+    }
   }
 
   const [updated] = await db
