@@ -1,0 +1,42 @@
+version: 2
+
+models:
+  - name: hoc_date_mentions
+    description: >
+      Every date written in the History of the Church body text, with the calendar date it
+      resolves to. Journal entry date lines take their date from int_hoc__entry_dates. Other
+      dates missing a month or year take them from the latest dated entry before them (or the
+      latest full date in the text), preferring the weekday they name. Dates in footnotes are
+      only resolved when written in full. Year-only references ("in 1839") are not extracted.
+    columns:
+      - name: mention_id
+        data_tests:
+          - unique
+          - not_null
+      - name: paragraph_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('hoc_paragraphs')
+                field: paragraph_id
+      - name: mention_text
+        description: The date exactly as matched, e.g. "Wednesday, 8" or "June 28th, 1840".
+      - name: is_entry_header
+        description: This mention is the date line that opens a journal entry.
+      - name: resolved_date
+        description: The calendar date; the first of the month when date_precision is month.
+      - name: date_precision
+        description: day or month.
+      - name: resolution
+        description: How the date was determined.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [explicit, inferred_year, inferred_month_and_year, unresolved]
+      - name: weekday_matches
+        description: >
+          When the text names a weekday, whether the resolved date falls on it. False values
+          point to a wrong inference or a mistake in the source.
+      - name: context_paragraph_id
+        description: The journal entry the missing month or year came from.
+      - name: context_date

@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: hoc_timeline
+    description: >
+      One row per dated journal entry in the History of the Church, for building a timeline.
+      Narrative chapters without journal entries (most of volume 1) only appear in
+      hoc_date_mentions.
+    columns:
+      - name: entry_id
+        description: paragraph_id of the entry's date line.
+        data_tests:
+          - unique
+          - not_null
+      - name: entry_date
+        data_tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: date_precision
+        description: day, or month for date lines with no day (entry_date is then the first of the month).
+      - name: date_resolution
+        description: explicit, inferred_year, or inferred_month_and_year (see hoc_date_mentions).
+      - name: weekday_matches
+      - name: entry_date_text
+        description: The date line as printed.
+      - name: sidenotes
+        description: Margin notes within the entry, joined with " / ". Useful as event headlines.
+      - name: entry_text
+        description: The entry's text paragraphs joined with blank lines.

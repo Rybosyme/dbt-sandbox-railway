@@ -1,0 +1,50 @@
+version: 2
+
+models:
+  - name: hoc_paragraphs
+    description: >
+      One row per paragraph of the History of the Church body text, from each chapter heading
+      through the chapter's footnotes. Front matter, the table of contents, the introduction,
+      and the index are excluded. Paragraphs are split on blank lines.
+    columns:
+      - name: paragraph_id
+        description: Volume and paragraph position, e.g. v4-p01234.
+        data_tests:
+          - unique
+          - not_null
+      - name: chapter_id
+        description: Volume and chapter sequence, e.g. v4-c07.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('hoc_chapters')
+                field: chapter_id
+      - name: chapter_seq
+        description: Order of the chapter within its volume (not the printed chapter number).
+      - name: chapter_paragraph_seq
+        description: Position within the chapter; 1 is the heading and 2 is the title.
+      - name: volume_paragraph_seq
+        description: Position within the whole volume text, counting excluded front matter.
+      - name: paragraph_kind
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [chapter_heading, chapter_title, text, sidenote, footnote_heading, footnote]
+      - name: is_journal_entry_start
+        description: The paragraph opens with an italic date line such as "_Tuesday, June 17_.--".
+      - name: entry_date_text
+        description: The date line as printed, when is_journal_entry_start.
+      - name: sidenote_text
+        description: The margin note text, for sidenote paragraphs.
+      - name: current_sidenote
+        description: The latest sidenote at or before this paragraph in the same chapter.
+      - name: page_start
+        description: Printed page the paragraph starts on, from the {123} page markers.
+      - name: page_end
+      - name: is_indented
+        description: Indented paragraphs are usually quoted letters, minutes, or tables.
+      - name: raw_text
+        description: Paragraph as it appears in the source, with line breaks and markup.
+      - name: clean_text
+        description: Paragraph with page markers and italics underscores removed and whitespace collapsed.
