@@ -54,10 +54,11 @@ router.post(
 router.post(
   "/",
   asyncHandler(async (req, res) => {
-    const { name } = req.body ?? {};
+    const { name, dbtProjectId } = req.body ?? {};
 
     const session = await createSession({
       name: typeof name === "string" ? name : undefined,
+      dbtProjectId: typeof dbtProjectId === "string" ? dbtProjectId : undefined,
     });
 
     res.status(201).json({ data: session });

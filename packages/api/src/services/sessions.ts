@@ -11,6 +11,12 @@ import {
   serviceInstanceDeployMutation,
 } from "../railway/mutations.js";
 import { HttpError } from "../utils/errors.js";
+import {
+  createProjectRepo,
+  projectRepoExists,
+  projectRepoName,
+  projectRepoUrl,
+} from "../github/client.js";
 
 type ServiceCreateResponse = {
   serviceCreate: {
@@ -28,7 +34,10 @@ type ServiceDeleteResponse = {
 
 export type CreateSessionInput = {
   name?: string;
+  dbtProjectId?: string;
 };
+
+const PROJECT_ID_PATTERN = /^[A-Z0-9][A-Z0-9-]{1,30}$/;
 
 // Short, all-caps IDs without look-alike characters (no 0/O, 1/I/L).
 const ID_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -37,9 +46,9 @@ const ID_LENGTH = 5;
 const generateShortId = () =>
   Array.from(randomBytes(ID_LENGTH), (b) => ID_ALPHABET[b % ID_ALPHABET.length]).join("");
 
-const generateSessionName = async () => {
+const generateSessionName = async (projectId: string) => {
   for (let attempt = 0; attempt < 10; attempt += 1) {
-    const candidate = `sandbox-${generateShortId()}`;
+    const candidate = `${projectRepoName(projectId)}-${generateShortId()}`;
     const [existing] = await db
       .select({ id: sessions.id })
       .from(sessions)
@@ -51,26 +60,48 @@ const generateSessionName = async () => {
   throw new HttpError(500, "Could not allocate a unique session name");
 };
 
-// Each session gets its own dbt target schema so concurrent sandboxes never collide.
-const schemaForSession = (sessionName: string) => {
-  const slug = sessionName.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-  return `dbt_${slug}`.slice(0, 63);
-};
+// Every session of a project builds into the same schema, like a shared dbt dev target.
+const schemaForProject = (projectId: string) =>
+  `dbt_${projectId.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`.slice(0, 63);
 
-export const createSession = async ({ name }: CreateSessionInput) => {
+export const createSession = async ({
+  name,
+  dbtProjectId,
+}: CreateSessionInput) => {
   if (config.localMode) {
     throw new HttpError(403, "Session creation disabled in local mode");
   }
 
-  const resolvedName = name?.trim() ? name.trim() : await generateSessionName();
+  // Resolve the dbt project: reuse an existing repo or create one from the template.
+  let projectId: string;
+  if (dbtProjectId?.trim()) {
+    projectId = dbtProjectId.trim().toUpperCase();
+    if (!PROJECT_ID_PATTERN.test(projectId)) {
+      throw new HttpError(400, "Invalid dbt project id");
+    }
+    if (!(await projectRepoExists(projectId))) {
+      throw new HttpError(
+        404,
+        `dbt project ${projectId} not found (${projectRepoUrl(projectId)})`,
+      );
+    }
+  } else {
+    projectId = generateShortId();
+    while (await projectRepoExists(projectId)) {
+      projectId = generateShortId();
+    }
+    await createProjectRepo(projectId);
+  }
+
+  const resolvedName = name?.trim()
+    ? name.trim()
+    : await generateSessionName(projectId);
   const sandboxVariables: Record<string, string> = {
     ...config.sandboxVars,
-    DBT_SCHEMA: schemaForSession(resolvedName),
+    SANDBOX_REPO_URL: `${projectRepoUrl(projectId)}.git`,
+    DBT_PROJECT_ID: projectId,
+    DBT_SCHEMA: schemaForProject(projectId),
   };
-
-  if (config.sandboxRepoUrl) {
-    sandboxVariables.SANDBOX_REPO_URL = config.sandboxRepoUrl;
-  }
 
   if (config.githubPersonalAccessToken) {
     sandboxVariables.GH_TOKEN = config.githubPersonalAccessToken;
@@ -128,6 +159,7 @@ export const createSession = async ({ name }: CreateSessionInput) => {
       name: resolvedName,
       status: "starting",
       railwayServiceId: data.serviceCreate.id,
+      dbtProjectId: projectId,
       createdAt: now,
       updatedAt: now,
     })

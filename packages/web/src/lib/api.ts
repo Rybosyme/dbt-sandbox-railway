@@ -23,6 +23,7 @@ type Session = {
   name: string;
   status: string;
   railwayServiceId: string;
+  dbtProjectId: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -73,6 +74,7 @@ export const fetchSessions = async (token: string): Promise<Session[]> => {
 export const createSession = async (
   token: string,
   name?: string,
+  dbtProjectId?: string,
 ): Promise<Session> => {
   const response = await fetch(`${API_URL}/sessions`, {
     method: "POST",
@@ -80,7 +82,7 @@ export const createSession = async (
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, dbtProjectId }),
   });
 
   const result = await handleResponse<ApiResponse<Session>>(response);

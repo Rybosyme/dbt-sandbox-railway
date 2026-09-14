@@ -5,6 +5,7 @@ export const sessions = pgTable("sessions", {
   name: text("name").notNull(),
   status: text("status").notNull(),
   railwayServiceId: text("railway_service_id").notNull(),
+  dbtProjectId: text("dbt_project_id"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

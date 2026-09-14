@@ -66,6 +66,9 @@ export const config = {
   sandboxRepoUrl: process.env.SANDBOX_REPO_URL,
   sandboxVars: parseSandboxVars(),
   githubPersonalAccessToken: process.env.GH_TOKEN,
+  githubOwner: process.env.GITHUB_OWNER ?? "Rybosyme",
+  githubTemplateRepo: process.env.GITHUB_TEMPLATE_REPO ?? "dbt-project-template",
+  dbtRepoPrefix: process.env.DBT_REPO_PREFIX ?? "dbt-",
   localMode:
     process.env.LOCAL_MODE === "true" ||
     ((process.env.SANDBOX_LOCAL_BASE_URL || process.env.SANDBOX_LOCAL_MAP) &&

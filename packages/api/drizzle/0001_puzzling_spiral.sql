@@ -1,0 +1,1 @@
+ALTER TABLE "sessions" ADD COLUMN "dbt_project_id" text;

@@ -1,16 +1,9 @@
-# dbt sandbox
+# dbt sandbox platform
 
-You are working inside an ephemeral sandbox that has read access to a production Postgres
-database and write access to one scratch schema.
+This repo is the control plane (`packages/api`, `packages/web`) and sandbox image (`packages/sandbox`)
+for disposable dbt workspaces on Railway. The dbt projects themselves live in separate GitHub repos
+named `dbt-<ID>`, created from `Rybosyme/dbt-project-template`.
 
-- The dbt project lives in `dbt/`. `DBT_PROJECT_DIR` already points at it, so `dbt run`,
-  `dbt test`, `dbt build` work from any directory.
-- Connection details are in the `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`
-  environment variables, so `psql` works with no arguments.
-- The database role is `dbt_sandbox`. It can SELECT from the `public`, `gutenberg`, `library`,
-  `primetime`, and `mcp` schemas and can create/write only schemas named `dbt_*`.
-  Models are built into the schema in `DBT_SCHEMA` (unique per sandbox session).
-- Declared sources are in `dbt/models/sources.yml`. Prefer `{{ source() }}` and `{{ ref() }}`
-  over hard-coded table names.
-- Do not try to modify source tables. If a source is missing from `sources.yml`, add it.
-- Commit your work and push a branch; the sandbox is destroyed when the session ends.
+- Sessions are created through the API; each one gets its own Railway service running the sandbox image.
+- The sandbox clones the project's repo, points `DBT_PROJECT_DIR` at it, and injects DB credentials.
+- Deploy with `railway up --service api|web` from the repo root; pushing to `packages/sandbox` rebuilds the image.

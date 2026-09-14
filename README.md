@@ -15,7 +15,7 @@ Forked from [sidpalas/background-agent-railway](https://github.com/sidpalas/back
 | `packages/api` | Express control plane. Creates/deletes sandbox services through the Railway API, stores sessions in its own Postgres, and reverse-proxies the browser into the sandbox over Railway's private network. |
 | `packages/web` | React dashboard: log in with the admin password, create sessions, open them. |
 | `packages/sandbox` | The sandbox image (`ghcr.io/rybosyme/dbt-sandbox`). Built by `.github/workflows/sandbox-image.yml` on every push that touches `packages/sandbox/`. |
-| `dbt/` | Starter dbt project. Cloned into every sandbox; `DBT_PROJECT_DIR` points at it. `models/sources.yml` lists the source tables. |
+| dbt projects | Separate GitHub repos named `dbt-<ID>`, created from [dbt-project-template](https://github.com/Rybosyme/dbt-project-template). A session with no project ID creates a new one; with an ID it clones that repo. |
 | `AGENTS.md` / `CLAUDE.md` | Instructions the coding agents read inside the sandbox. |
 
 ### Variables the API needs
@@ -26,10 +26,11 @@ Everything the upstream template needs, plus:
 |---|---|
 | `RAILWAY_PROJECT_TOKEN` **or** `RAILWAY_API_TOKEN` | Token used to create/delete sandbox services. A project token (Project settings → Tokens) is scoped to this project only. |
 | `SANDBOX_VAR_<NAME>` | Injected into every sandbox as `<NAME>`. Used for `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, `PGSSLMODE`, `ANTHROPIC_API_KEY`. |
-| `SANDBOX_REPO_URL` | Repo cloned into the sandbox (public repos need no token). |
+| `GH_TOKEN` | Fine-grained PAT used to create `dbt-<ID>` repos from the template and forwarded to sandboxes for clone/push. |
+| `GITHUB_OWNER`, `GITHUB_TEMPLATE_REPO`, `DBT_REPO_PREFIX` | Where project repos live (defaults: Rybosyme, dbt-project-template, `dbt-`). |
 
-Each session also receives `DBT_SCHEMA=dbt_<session-name>` so concurrent sandboxes build into
-separate schemas.
+Each session receives `DBT_PROJECT_ID` and `DBT_SCHEMA=dbt_<project-id>`, so all sessions of a
+project build into the same schema.
 
 ### Database access
 

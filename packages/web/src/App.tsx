@@ -18,9 +18,14 @@ type Session = {
   name: string;
   status: string;
   railwayServiceId: string;
+  dbtProjectId: string | null;
   createdAt: string;
   updatedAt: string;
 };
+
+const GITHUB_OWNER = import.meta.env.VITE_GITHUB_OWNER ?? "Rybosyme";
+const projectRepoUrl = (projectId: string) =>
+  `https://github.com/${GITHUB_OWNER}/dbt-${projectId}`;
 
 type RefreshOptions = {
   showSyncIndicator?: boolean;
@@ -51,6 +56,7 @@ function App() {
   const [token, setToken] = useState<string | null>(() => getStoredToken());
   const [sessions, setSessions] = useState<Session[]>([]);
   const [name, setName] = useState("");
+  const [dbtProjectId, setDbtProjectId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -146,8 +152,13 @@ function App() {
     setCreatingCount((count) => count + 1);
     setError(null);
     try {
-      await createSession(token, name.trim() ? name.trim() : undefined);
+      await createSession(
+        token,
+        name.trim() ? name.trim() : undefined,
+        dbtProjectId.trim() ? dbtProjectId.trim() : undefined,
+      );
       setName("");
+      setDbtProjectId("");
       await refreshSessions();
     } catch (error) {
       if (error instanceof Error) {
@@ -293,10 +304,22 @@ function App() {
 
             <form className="form inline" onSubmit={handleCreateSession}>
               <label className="field">
-                <span>New session</span>
+                <span>dbt project ID</span>
                 <input
                   type="text"
-                  placeholder="Sandbox name (optional)"
+                  placeholder="Blank = create a new project"
+                  value={dbtProjectId}
+                  onChange={(event) =>
+                    setDbtProjectId(event.target.value.toUpperCase())
+                  }
+                  disabled={isLocalMode}
+                />
+              </label>
+              <label className="field">
+                <span>Session name</span>
+                <input
+                  type="text"
+                  placeholder="optional"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                   disabled={isLocalMode}
@@ -351,6 +374,18 @@ function App() {
                         <span> · </span>
                         {new Date(session.createdAt).toLocaleString()}
                       </p>
+                      {session.dbtProjectId ? (
+                        <p className="id">
+                          dbt project {session.dbtProjectId} ·{" "}
+                          <a
+                            href={projectRepoUrl(session.dbtProjectId)}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            GitHub
+                          </a>
+                        </p>
+                      ) : null}
                       <p className="id">Service {session.railwayServiceId}</p>
                     </div>
                     <div className="session-actions">

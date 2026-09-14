@@ -1,5 +1,0 @@
-version: 2
-
-models:
-  - name: stg_primetime__games
-    description: One row per game from the primetime source, unchanged.

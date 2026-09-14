@@ -32,11 +32,18 @@ if [ -d "${REPO_DIR}/.git" ]; then
   CODE_SERVER_DIR="${REPO_DIR}"
 fi
 
-# Point dbt at the project inside the repo (default: <repo>/dbt).
-DBT_DIR="${REPO_DIR}/${SANDBOX_DBT_DIR:-dbt}"
+# Point dbt at the project: the repo root itself, or <repo>/dbt for monorepos.
+DBT_DIR="${REPO_DIR}"
+if [ ! -f "${DBT_DIR}/dbt_project.yml" ]; then
+  DBT_DIR="${REPO_DIR}/${SANDBOX_DBT_DIR:-dbt}"
+fi
 if [ -f "${DBT_DIR}/dbt_project.yml" ]; then
   export DBT_PROJECT_DIR="${DBT_DIR}"
 fi
+
+# Commit identity for pushes from the sandbox (override via GIT_USER_NAME / GIT_USER_EMAIL).
+git config --global user.name "${GIT_USER_NAME:-dbt Sandbox Bot}"
+git config --global user.email "${GIT_USER_EMAIL:-dbt-sandbox-bot@users.noreply.github.com}"
 
 # Shell banner so a new terminal explains itself.
 cat > /etc/profile.d/sandbox.sh <<BANNER
@@ -48,6 +55,7 @@ BANNER
 cat > /etc/motd <<BANNER
 dbt sandbox
   database : ${PGUSER:-?}@${PGHOST:-?}:${PGPORT:-5432}/${PGDATABASE:-?}  (schema: ${DBT_SCHEMA:-dbt_sandbox})
+  project  : ${DBT_PROJECT_ID:-?}  ${SANDBOX_REPO_URL:-}
   dbt      : ${DBT_PROJECT_DIR:-<no dbt project found>}
   agents   : opencode | claude | codex   (ANTHROPIC_API_KEY $( [ -n "${ANTHROPIC_API_KEY:-}" ] && echo set || echo NOT set ))
   try      : dbt debug && dbt run     |   psql
