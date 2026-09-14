@@ -1,5 +1,5 @@
 import { eq, desc } from "drizzle-orm";
-import { randomUUID } from "crypto";
+import { randomBytes, randomUUID } from "crypto";
 
 import { config } from "../config.js";
 import { db } from "../db/client.js";
@@ -30,7 +30,26 @@ export type CreateSessionInput = {
   name?: string;
 };
 
-const generateSessionName = () => `sandbox-${Date.now()}`;
+// Short, all-caps IDs without look-alike characters (no 0/O, 1/I/L).
+const ID_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const ID_LENGTH = 5;
+
+const generateShortId = () =>
+  Array.from(randomBytes(ID_LENGTH), (b) => ID_ALPHABET[b % ID_ALPHABET.length]).join("");
+
+const generateSessionName = async () => {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const candidate = `sandbox-${generateShortId()}`;
+    const [existing] = await db
+      .select({ id: sessions.id })
+      .from(sessions)
+      .where(eq(sessions.name, candidate));
+    if (!existing) {
+      return candidate;
+    }
+  }
+  throw new HttpError(500, "Could not allocate a unique session name");
+};
 
 // Each session gets its own dbt target schema so concurrent sandboxes never collide.
 const schemaForSession = (sessionName: string) => {
@@ -43,7 +62,7 @@ export const createSession = async ({ name }: CreateSessionInput) => {
     throw new HttpError(403, "Session creation disabled in local mode");
   }
 
-  const resolvedName = name?.trim() ? name.trim() : generateSessionName();
+  const resolvedName = name?.trim() ? name.trim() : await generateSessionName();
   const sandboxVariables: Record<string, string> = {
     ...config.sandboxVars,
     DBT_SCHEMA: schemaForSession(resolvedName),
